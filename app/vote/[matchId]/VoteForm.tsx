@@ -9,7 +9,6 @@ import { type VoteState, submitBallotAction } from './actions';
 
 type VoteTeam = Team & { isMine: boolean; players: (RosterPlayer & { isSelf: boolean })[] };
 
-const REASON_MIN = 5;
 const REASON_MAX = 300;
 
 export function VoteForm({ matchId, teams }: { matchId: string; teams: VoteTeam[] }) {
@@ -19,7 +18,8 @@ export function VoteForm({ matchId, teams }: { matchId: string; teams: VoteTeam[
   const [reasons, setReasons] = useState<Record<string, string>>({});
 
   const reasonLength = (teamId: string) => (reasons[teamId] ?? '').trim().length;
-  const isDone = (teamId: string) => Boolean(picks[teamId]) && reasonLength(teamId) >= REASON_MIN;
+  // 이유는 선택 사항이라 MOM만 고르면 완료입니다.
+  const isDone = (teamId: string) => Boolean(picks[teamId]);
   const doneCount = teams.filter((t) => isDone(t.id)).length;
   const complete = doneCount === teams.length;
   const nameOf = (team: VoteTeam) => team.players.find((p) => p.id === picks[team.id])?.name;
@@ -36,8 +36,8 @@ export function VoteForm({ matchId, teams }: { matchId: string; teams: VoteTeam[
       {/* 확인 단계에서도 입력값이 함께 제출되도록 숨기기만 합니다. */}
       <div className="stack" hidden={step !== 'fill'}>
         <p className="notice notice-info">
-          팀마다 <strong>MOM 한 명</strong>을 고르고 <strong>이유</strong>를 적어 주세요. 투표는 익명이라 누가 누구를 뽑았는지
-          아무도 알 수 없습니다.
+          팀마다 <strong>MOM 한 명</strong>을 골라 주세요. 이유는 적고 싶을 때만 적으면 됩니다. 투표는 익명이라 누가 누구를
+          뽑았는지 아무도 알 수 없습니다.
         </p>
 
         {teams.map((team, i) => {
@@ -81,7 +81,7 @@ export function VoteForm({ matchId, teams }: { matchId: string; teams: VoteTeam[
               </div>
 
               <label className="field">
-                {nameOf(team) ? `${nameOf(team)} 선수를 뽑은 이유` : '뽑은 이유'}
+                {nameOf(team) ? `${nameOf(team)} 선수를 뽑은 이유 (선택)` : '뽑은 이유 (선택)'}
                 <textarea
                   id={`reason-${team.id}`}
                   name={`reason_${team.id}`}
@@ -91,7 +91,7 @@ export function VoteForm({ matchId, teams }: { matchId: string; teams: VoteTeam[
                   onChange={(e) => setReasons({ ...reasons, [team.id]: e.target.value })}
                 />
                 <span className="field-hint num">
-                  {length < REASON_MIN ? `${REASON_MIN - length}자 더 적어 주세요` : `${length}/${REASON_MAX}자`}
+                  {length}/{REASON_MAX}자
                 </span>
               </label>
             </fieldset>
@@ -115,7 +115,7 @@ export function VoteForm({ matchId, teams }: { matchId: string; teams: VoteTeam[
                   <span className="team-name">{team.name}</span>
                   <strong>{nameOf(team)}</strong>
                 </div>
-                <p className="quote">{reasons[team.id]?.trim()}</p>
+                {reasons[team.id]?.trim() && <p className="quote">{reasons[team.id].trim()}</p>}
               </div>
             ))}
           </div>

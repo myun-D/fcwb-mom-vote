@@ -65,7 +65,7 @@ create table if not exists votes (
   match_id uuid not null references matches(id) on delete cascade,
   team_id uuid not null,
   candidate_id uuid not null references members(id),
-  reason text not null,
+  reason text not null,                            -- 선택 사항이라 빈 문자열일 수 있습니다
   foreign key (team_id, match_id) references teams(id, match_id) on delete cascade
 );
 
@@ -140,9 +140,6 @@ begin
       where match_id = p_match_id and team_id = v_team and member_id = v_candidate
     ) then
       raise exception '선택한 선수가 해당 팀 명단에 없습니다.';
-    end if;
-    if char_length(v_reason) < 5 then
-      raise exception '이유는 5자 이상 적어 주세요.';
     end if;
     if char_length(v_reason) > 300 then
       raise exception '이유는 300자 이내로 적어 주세요.';

@@ -93,7 +93,8 @@ export async function getTally(matchId: string): Promise<TeamTally[]> {
     const candidates = team.players
       .map((player) => {
         const mine = teamVotes.filter((v) => v.candidate_id === player.id);
-        return { ...player, votes: mine.length, reasons: mine.map((v) => v.reason) };
+        // 이유는 선택 사항이라 빈 값은 목록에서 뺍니다.
+        return { ...player, votes: mine.length, reasons: mine.map((v) => v.reason).filter(Boolean) };
       })
       .sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name, 'ko'));
     const result = results.find((r) => r.team_id === team.id);
