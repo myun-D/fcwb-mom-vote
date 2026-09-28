@@ -17,11 +17,11 @@ export default async function VotePage({ params }: { params: Promise<{ matchId: 
   if (!teams.some(isMine)) redirect('/?msg=' + encodeURIComponent('이번 경기 출전 선수만 투표할 수 있습니다.'));
   if (await hasVoted(match.id, member.id)) redirect('/');
 
-  // 본인은 후보에서 뺍니다.
+  // 본인도 명단에는 보이되 선택은 못 하게 표시합니다. (서버에서도 자기 투표를 막습니다)
   const candidates = teams.map((t) => ({
     ...t,
     isMine: isMine(t),
-    players: t.players.filter((p) => p.id !== member.id),
+    players: t.players.map((p) => ({ ...p, isSelf: p.id === member.id })),
   }));
 
   return (

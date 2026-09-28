@@ -20,28 +20,38 @@ export function RosterEditor({ members, teams, initial }: Props) {
   const values = members.map((m) => choices[m.id] ?? '');
   const neutral = values.filter((v) => v === 'neutral').length;
   const absent = values.filter((v) => v === '').length;
+  // 중립 선수는 모든 팀 명단에 함께 들어갑니다.
+  const teamMembers = (teamId: string) => members.filter((m) => [teamId, 'neutral'].includes(choices[m.id] ?? ''));
   const q = query.trim();
 
   return (
     <div className="stack">
       <div className="roster-summary" aria-live="polite">
         {teams.map((t) => {
-          const own = values.filter((v) => v === t.id).length;
+          const list = teamMembers(t.id);
           return (
             <div key={t.id} className={`roster-count ${teamClass(t.sort_order)}`}>
-              <span className="team-name">{t.name}</span>
-              <strong className="num">{own + neutral}명</strong>
+              <div className="row-between">
+                <span className="team-name">{t.name}</span>
+                <strong className="num">{list.length}명</strong>
+              </div>
+              {list.length > 0 && (
+                <p className="roster-names">
+                  {list.map((m) => (
+                    <span key={m.id}>
+                      {m.name}
+                      {choices[m.id] === 'neutral' && <span className="tag">{NEUTRAL_LABEL}</span>}
+                    </span>
+                  ))}
+                </p>
+              )}
             </div>
           );
         })}
-        <div className="roster-count team-n">
-          <span className="team-name">{NEUTRAL_LABEL}</span>
-          <strong className="num">{neutral}명</strong>
-        </div>
       </div>
       <p className="muted small" style={{ margin: 0 }}>
-        인원이 홀수라 두 팀 모두에서 뛴 사람은 <strong>{NEUTRAL_LABEL}</strong>으로 두세요. 양 팀 인원에 모두 포함되고, 두 팀
-        어디서든 MOM 후보가 됩니다. 미출전 {absent}명은 투표할 수 없습니다.
+        인원이 홀수라 두 팀 모두에서 뛴 사람은 <strong>{NEUTRAL_LABEL}</strong>으로 두세요. 모든 팀 명단에 이름이 들어가고, 어느
+        팀에서든 MOM 후보가 됩니다.{neutral > 0 && ` (중립 ${neutral}명)`} 미출전 {absent}명은 투표할 수 없습니다.
       </p>
 
       {members.length > 10 && (

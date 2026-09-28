@@ -4,10 +4,10 @@ import { useActionState, useState } from 'react';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { NEUTRAL_LABEL, teamClass } from '@/lib/format';
-import type { TeamWithPlayers } from '@/lib/types';
+import type { RosterPlayer, Team } from '@/lib/types';
 import { type VoteState, submitBallotAction } from './actions';
 
-type VoteTeam = TeamWithPlayers & { isMine: boolean };
+type VoteTeam = Team & { isMine: boolean; players: (RosterPlayer & { isSelf: boolean })[] };
 
 const REASON_MIN = 5;
 const REASON_MAX = 300;
@@ -65,11 +65,16 @@ export function VoteForm({ matchId, teams }: { matchId: string; teams: VoteTeam[
                       name={`candidate_${team.id}`}
                       value={p.id}
                       checked={picks[team.id] === p.id}
+                      disabled={p.isSelf}
                       onChange={() => setPicks({ ...picks, [team.id]: p.id })}
                     />
                     <span>
                       {p.name}
-                      {p.neutral && <small className="choice-sub">{NEUTRAL_LABEL}</small>}
+                      {(p.isSelf || p.neutral) && (
+                        <small className="choice-sub">
+                          {[p.isSelf && '본인', p.neutral && NEUTRAL_LABEL].filter(Boolean).join(' · ')}
+                        </small>
+                      )}
                     </span>
                   </label>
                 ))}

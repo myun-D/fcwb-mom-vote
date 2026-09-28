@@ -216,6 +216,8 @@ textarea { min-height: 88px; resize: vertical; }
 .choice input:checked + span { border-color: var(--team, var(--sky)); background: var(--team-soft, var(--sky-soft)); box-shadow: inset 0 0 0 2px var(--team, var(--sky)); }
 .choice input:focus-visible + span { outline: 3px solid var(--sky-ink); outline-offset: 2px; }
 .choice-sub { font-size: 0.72rem; font-weight: 600; color: var(--team-n-ink); }
+.choice input:disabled { cursor: not-allowed; }
+.choice input:disabled + span { border-style: dashed; background: var(--surface-2); color: var(--muted); }
 
 /* 명단 편성 (관리자) */
 .roster { display: flex; flex-direction: column; }
@@ -224,7 +226,10 @@ textarea { min-height: 88px; resize: vertical; }
   padding: 8px 0; border-bottom: 1px solid var(--line);
 }
 .roster-name { font-weight: 600; }
-.roster-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.roster-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (max-width: 420px) { .roster-summary { grid-template-columns: 1fr; } }
+.roster-names { margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 0.85rem; }
+.roster-names > span { display: inline-flex; align-items: center; gap: 4px; }
 .roster-count {
   display: flex; flex-direction: column; gap: 2px; padding: 10px 12px;
   border-radius: 10px; background: var(--team-soft);
