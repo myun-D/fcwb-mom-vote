@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { Notice } from '@/components/Notice';
 import { STATUS_LABEL, formatDate, teamClass } from '@/lib/format';
-import { getMomRanking, getPublishedMoms, hasVoted, isPlayer, listMatches } from '@/lib/queries';
+import { getPublishedMoms, hasVoted, isPlayer, listMatches } from '@/lib/queries';
 import { requireMember } from '@/lib/session';
 
 export default async function HomePage({
@@ -14,11 +14,7 @@ export default async function HomePage({
   const params = await searchParams;
 
   const active = await listMatches(['open', 'closed']);
-  const [published, moms, ranking] = await Promise.all([
-    listMatches(['published']),
-    getPublishedMoms(),
-    getMomRanking(),
-  ]);
+  const [published, moms] = await Promise.all([listMatches(['published']), getPublishedMoms()]);
 
   const activeCards = await Promise.all(
     active.map(async (match) => ({
@@ -53,7 +49,12 @@ export default async function HomePage({
             </div>
             <h2>{match.title}</h2>
             {match.status === 'closed' ? (
-              <p className="muted" style={{ margin: 0 }}>투표가 마감되었습니다. 관리자가 MOM을 선정하고 있어요.</p>
+              <>
+                <p className="muted" style={{ margin: 0 }}>투표가 마감되었습니다. 개표 화면에서 한 표씩 함께 확인해요.</p>
+                <Link href={`/live/${match.id}`} className="btn btn-primary btn-block">
+                  개표 같이 보기
+                </Link>
+              </>
             ) : !player ? (
               <p className="muted" style={{ margin: 0 }}>이번 경기 출전 선수만 투표할 수 있습니다.</p>
             ) : voted ? (
@@ -91,26 +92,6 @@ export default async function HomePage({
                   </li>
                 ))}
               </ul>
-            </section>
-
-            <p className="section-label">누적 MOM</p>
-            <section className="card">
-              <table className="ranking">
-                <tbody>
-                  {ranking.map((r) => (
-                    <tr key={r.name}>
-                      <td>
-                        {/* 횟수가 같으면 같은 순위 */}
-                        <span className="muted num" style={{ display: 'inline-block', width: 28 }}>
-                          {ranking.filter((o) => o.count > r.count).length + 1}
-                        </span>
-                        {r.name}
-                      </td>
-                      <td>{r.count}회</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </section>
           </>
         )}

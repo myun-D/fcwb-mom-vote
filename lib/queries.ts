@@ -121,16 +121,63 @@ export async function getPublishedMoms(): Promise<MomRecord[]> {
   `;
 }
 
-export type MomRanking = { name: string; count: number };
+export type RevealCard = { id: string; team_id: string; name: string; reason: string; indexInTeam: number };
+export type RevealTeam = Team & {
+  total: number; // 이 팀에 들어온 전체 표 수
+  revealed: number; // 지금까지 공개된 표 수
+  tally: { name: string; votes: number }[]; // 공개된 표 기준, 많은 순
+};
+export type RevealState = { started: boolean; pos: number; total: number; current: RevealCard | null; teams: RevealTeam[] };
 
-/** 발표된 경기 기준 사람별 누적 MOM 횟수 */
-export async function getMomRanking(): Promise<MomRanking[]> {
-  return sql<MomRanking[]>`
-    select m.name, count(*)::int as count
-    from mom_results r
-    join matches mt on mt.id = r.match_id and mt.status = 'published'
-    join members m on m.id = r.member_id
-    group by m.name
-    order by count desc, m.name
+/**
+ * 개표 화면 상태. 아직 공개하지 않은 표는 조회하지 않아서 화면(네트워크)으로 미리 새어 나가지 않습니다.
+ */
+export async function getReveal(matchId: string): Promise<RevealState> {
+  const [match] = await sql<{ reveal_order: string[] | null; reveal_pos: number }[]>`
+    select reveal_order, reveal_pos from matches where id = ${matchId}
   `;
+  const teams = await sql<(Team & { total: number })[]>`
+    select t.id, t.name, t.sort_order, count(v.id)::int as total
+    from teams t left join votes v on v.team_id = t.id
+    where t.match_id = ${matchId}
+    group by t.id
+    order by t.sort_order
+  `;
+
+  const order = match?.reveal_order ?? [];
+  const pos = Math.min(match?.reveal_pos ?? 0, order.length);
+  const shownIds = order.slice(0, pos);
+  const rows = shownIds.length
+    ? await sql<{ id: string; team_id: string; name: string; reason: string }[]>`
+        select v.id, v.team_id, m.name, v.reason
+        from votes v join members m on m.id = v.candidate_id
+        where v.id in ${sql(shownIds)}
+      `
+    : [];
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const shown = shownIds.map((id) => byId.get(id)).filter((r) => r !== undefined);
+
+  const last = shown.at(-1);
+  const current = last
+    ? { ...last, indexInTeam: shown.filter((v) => v.team_id === last.team_id).length }
+    : null;
+
+  return {
+    started: match?.reveal_order != null,
+    pos,
+    total: order.length,
+    current,
+    teams: teams.map((team) => {
+      const mine = shown.filter((v) => v.team_id === team.id);
+      const counts = new Map<string, number>();
+      for (const v of mine) counts.set(v.name, (counts.get(v.name) ?? 0) + 1);
+      return {
+        ...team,
+        revealed: mine.length,
+        tally: [...counts]
+          .map(([name, votes]) => ({ name, votes }))
+          .sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name, 'ko')),
+      };
+    }),
+  };
 }

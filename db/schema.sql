@@ -24,6 +24,12 @@ create table if not exists matches (
   created_at timestamptz not null default now()
 );
 
+-- 개표(다 같이 한 표씩 보기) 상태
+-- reveal_order: 팀 순서 → 팀 안에서는 무작위로 섞은 표 id 목록. null이면 아직 개표 시작 전
+-- reveal_pos: 지금까지 공개한 표 수
+alter table matches add column if not exists reveal_order uuid[];
+alter table matches add column if not exists reveal_pos int not null default 0;
+
 create table if not exists teams (
   id uuid primary key default gen_random_uuid(),
   match_id uuid not null references matches(id) on delete cascade,

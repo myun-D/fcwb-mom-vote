@@ -146,6 +146,8 @@ export async function reopenVotingAction(formData: FormData) {
   await requireAdmin();
   const matchId = matchIdFrom(formData);
   if (!(await transition(matchId, 'closed', 'open'))) done(matchPath(matchId), '마감된 경기만 다시 열 수 있습니다.', 'error');
+  // 표가 더 들어올 수 있으니 진행하던 개표는 처음부터 다시 합니다.
+  await sql`update matches set reveal_order = null, reveal_pos = 0 where id = ${matchId}`;
   done(matchPath(matchId), '투표를 다시 열었습니다.');
 }
 

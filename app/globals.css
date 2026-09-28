@@ -328,3 +328,14 @@ fieldset { min-width: 0; }
 .login-hero { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 40px 0 8px; text-align: center; }
 .login-hero img { width: min(240px, 70vw); height: auto; margin-bottom: 8px; }
 .login-hero p { margin: 0; }
+
+/* 개표 화면 */
+.reveal-card { display: flex; flex-direction: column; gap: 12px; min-height: 220px; justify-content: center; animation: reveal-in 0.35s ease-out; }
+.reveal-waiting { align-items: center; text-align: center; }
+.reveal-name { margin: 0; font-size: clamp(2rem, 9vw, 3.25rem); font-weight: 900; letter-spacing: -0.02em; text-align: center; line-height: 1.15; }
+.reveal-reason { margin: 0; font-size: 1.15rem; text-align: center; line-height: 1.6; }
+.reveal-buttons .btn { width: 100%; }
+@keyframes reveal-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}

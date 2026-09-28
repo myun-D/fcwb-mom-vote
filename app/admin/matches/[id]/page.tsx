@@ -231,9 +231,25 @@ async function OpenSection({ match }: { match: Match }) {
 
 async function ClosedSection({ match }: { match: Match }) {
   const [tally, participation] = await Promise.all([getTally(match.id), getParticipation(match.id)]);
+  const h = await headers();
+  const origin = `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}`;
+  const liveText = `[${match.title}] 개표 시작합니다! 같이 봐요\n${origin}/live/${match.id}`;
 
   return (
     <>
+      <section className="card stack-sm">
+        <h2>다 같이 개표하기</h2>
+        <p className="muted small" style={{ margin: 0 }}>
+          개표 화면을 열고 다음 표를 누르면, 링크를 연 모든 사람의 화면에 같은 표가 한 장씩 나타납니다. TV나 노트북에 띄워도 됩니다.
+        </p>
+        <div className="row">
+          <Link href={`/live/${match.id}`} className="btn btn-primary">
+            개표 화면 열기
+          </Link>
+          <CopyButton text={liveText} label="개표 링크 복사" />
+        </div>
+      </section>
+
       <form action={saveSelectionAction} className="stack">
         <input type="hidden" name="matchId" value={match.id} />
         <p className="muted small" style={{ margin: 0 }}>
