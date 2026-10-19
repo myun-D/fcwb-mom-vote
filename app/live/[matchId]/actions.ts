@@ -2,6 +2,7 @@
 
 import { isUuid, sql } from '@/lib/db';
 import { type RevealState, getReveal } from '@/lib/queries';
+import { notifyMatch } from '@/lib/realtime';
 import { requireAdmin } from '@/lib/session';
 
 // 화면 전체를 새로고침하지 않고, 바뀐 개표 상태를 바로 돌려줘서 관리자 화면이 즉시 바뀌게 합니다.
@@ -20,6 +21,7 @@ export async function startRevealAction(matchId: string): Promise<RevealState | 
         ), '{}')
     where id = ${matchId} and status = 'closed'
   `;
+  await notifyMatch(matchId);
   return getReveal(matchId);
 }
 
@@ -32,5 +34,6 @@ export async function stepRevealAction(matchId: string, delta: number): Promise<
     set reveal_pos = least(greatest(reveal_pos + ${delta}, 0), cardinality(reveal_order))
     where id = ${matchId} and status = 'closed' and reveal_order is not null
   `;
+  await notifyMatch(matchId);
   return getReveal(matchId);
 }

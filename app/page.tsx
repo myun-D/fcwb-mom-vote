@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { Notice } from '@/components/Notice';
+import { RealtimeRefresh } from '@/components/RealtimeRefresh';
 import { STATUS_LABEL, formatDate, teamClass } from '@/lib/format';
-import { getPublishedMoms, hasVoted, isPlayer, listMatches } from '@/lib/queries';
+import { getParticipation, getPublishedMoms, hasVoted, isPlayer, listMatches } from '@/lib/queries';
+import { MATCHES_TOPIC } from '@/lib/realtime';
 import { requireMember } from '@/lib/session';
 
 export default async function HomePage({
@@ -21,12 +23,15 @@ export default async function HomePage({
       match,
       player: await isPlayer(match.id, member.id),
       voted: await hasVoted(match.id, member.id),
+      participation: match.status === 'open' ? await getParticipation(match.id) : null,
     })),
   );
 
   return (
     <>
       <Header member={member} />
+      {/* 투표가 열리거나 마감되고, 누가 투표하면 이 화면이 바로 바뀝니다. */}
+      <RealtimeRefresh topic={MATCHES_TOPIC} />
       <main className="stack">
         <div className="page-title">
           <h1>{member.name}님, 안녕하세요</h1>
@@ -41,13 +46,32 @@ export default async function HomePage({
           </div>
         )}
 
-        {activeCards.map(({ match, player, voted }) => (
+        {activeCards.map(({ match, player, voted, participation }) => (
           <section key={match.id} className="card stack">
             <div className="row-between">
               <span className={`badge badge-${match.status}`}>{STATUS_LABEL[match.status]}</span>
               <span className="muted small">{formatDate(match.match_date)}</span>
             </div>
             <h2>{match.title}</h2>
+            {participation && participation.eligible > 0 && (
+              <div className="stack-sm">
+                <div className="row-between">
+                  <span className="muted small">투표 참여</span>
+                  <strong className="num">
+                    {participation.voted}/{participation.eligible}명
+                  </strong>
+                </div>
+                <div
+                  className="progress"
+                  role="progressbar"
+                  aria-valuenow={participation.voted}
+                  aria-valuemin={0}
+                  aria-valuemax={participation.eligible}
+                >
+                  <div style={{ width: `${(participation.voted / participation.eligible) * 100}%` }} />
+                </div>
+              </div>
+            )}
             {match.status === 'closed' ? (
               <>
                 <p className="muted" style={{ margin: 0 }}>투표가 마감되었습니다. 개표 화면에서 한 표씩 함께 확인해요.</p>

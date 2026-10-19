@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { dbUserMessage, isUuid, sql } from '@/lib/db';
+import { notifyMatch } from '@/lib/realtime';
 import { getCurrentMember } from '@/lib/session';
 
 export type VoteState = { error?: string };
@@ -33,6 +34,8 @@ export async function submitBallotAction(_prev: VoteState, formData: FormData): 
     return { error: '제출하지 못했습니다. 잠시 뒤 다시 시도해 주세요.' };
   }
 
+  // 관리자 참여 현황과 홈 화면의 투표 인원이 바로 올라가도록 알립니다.
+  await notifyMatch(matchId, true);
   revalidatePath('/');
   redirect('/?voted=1');
 }

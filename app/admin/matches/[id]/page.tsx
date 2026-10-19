@@ -14,11 +14,13 @@ import {
 import { CopyButton } from '@/components/CopyButton';
 import { Header } from '@/components/Header';
 import { Notice } from '@/components/Notice';
+import { RealtimeRefresh } from '@/components/RealtimeRefresh';
 import { ResultsView } from '@/components/ResultsView';
 import { SubmitButton } from '@/components/SubmitButton';
 import { sql } from '@/lib/db';
 import { NEUTRAL_LABEL, STATUS_LABEL, formatDate, teamClass } from '@/lib/format';
 import { type TeamTally, getMatch, getParticipation, getTally, getTeamsWithPlayers } from '@/lib/queries';
+import { matchTopic } from '@/lib/realtime';
 import { requireAdmin } from '@/lib/session';
 import type { Match, MatchStatus } from '@/lib/types';
 import { type RosterChoice, RosterEditor } from './RosterEditor';
@@ -180,6 +182,8 @@ async function OpenSection({ match }: { match: Match }) {
 
   return (
     <>
+      {/* 누가 투표하면 참여 현황이 바로 올라갑니다. */}
+      <RealtimeRefresh topic={matchTopic(match.id)} />
       <section className="card stack">
         <div className="row-between">
           <h2>참여 현황</h2>

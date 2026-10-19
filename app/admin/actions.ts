@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { isUuid, sql } from '@/lib/db';
 import { DEFAULT_TEAM_NAMES } from '@/lib/format';
+import { notifyMatch } from '@/lib/realtime';
 import { requireAdmin } from '@/lib/session';
 import type { MatchStatus } from '@/lib/types';
 
@@ -24,6 +25,8 @@ async function transition(matchId: string, from: MatchStatus, to: MatchStatus): 
     where id = ${matchId} and status = ${from}
     returning id
   `;
+  // 홈·개표 화면을 보고 있던 사람들 화면에 투표 열림·마감·발표가 바로 반영되도록 알립니다.
+  if (rows.length > 0) await notifyMatch(matchId, true);
   return rows.length > 0;
 }
 
@@ -132,6 +135,7 @@ export async function backToDraftAction(formData: FormData) {
     returning id
   `;
   if (rows.length === 0) done(matchPath(matchId), '이미 투표한 사람이 있어 명단을 바꿀 수 없습니다.', 'error');
+  await notifyMatch(matchId, true);
   done(matchPath(matchId), '준비 단계로 돌아왔습니다.');
 }
 
@@ -187,6 +191,7 @@ export async function saveSelectionAction(formData: FormData) {
   });
 
   if (!ok) done(matchPath(matchId), '마감된 경기에서만 MOM을 선정할 수 있습니다.', 'error');
+  if (publish) await notifyMatch(matchId, true);
   done(matchPath(matchId), publish ? '결과를 발표했습니다. 팀원들이 결과를 볼 수 있습니다.' : '선정 내용을 저장했습니다.');
 }
 
@@ -201,6 +206,7 @@ export async function deleteMatchAction(formData: FormData) {
   await requireAdmin();
   const matchId = matchIdFrom(formData);
   await sql`delete from matches where id = ${matchId}`;
+  await notifyMatch(matchId, true);
   done('/admin', '경기를 삭제했습니다.');
 }
 

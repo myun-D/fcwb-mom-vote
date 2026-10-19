@@ -4,9 +4,13 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { teamClass } from '@/lib/format';
 import type { RevealState } from '@/lib/queries';
+import { matchTopic } from '@/lib/realtime';
+import { useRealtime } from '@/lib/useRealtime';
 import { startRevealAction, stepRevealAction } from './actions';
 
+// 실시간 연결이 안 될 때의 확인 간격과, 연결됐을 때 혹시 놓친 신호를 보완하는 확인 간격
 const POLL_MS = 2000;
+const FALLBACK_POLL_MS = 10000;
 
 type Props = { matchId: string; isAdmin: boolean; initial: RevealState };
 
@@ -15,12 +19,32 @@ export function LiveView({ matchId, isAdmin, initial }: Props) {
   const [pending, startTransition] = useTransition();
   // 관리자가 넘긴 직후 도착한 예전 폴링 응답이 화면을 되돌리지 않도록 순번을 둡니다.
   const version = useRef(0);
+  const pollNow = useRef(() => {});
+  const pollMs = useRef(POLL_MS);
 
-  // 이전 요청이 끝난 뒤에만 다음 요청을 보내서 요청이 겹치지 않게 합니다.
+  // 관리자가 넘기면 실시간 신호로 바로 새로 가져오고, 연결이 되면 주기적 확인은 느리게 돌립니다.
+  useRealtime(
+    matchTopic(matchId),
+    () => pollNow.current(),
+    (connected) => {
+      pollMs.current = connected ? FALLBACK_POLL_MS : POLL_MS;
+    },
+  );
+
+  // 신호를 놓쳐도 주기적으로 확인해 따라옵니다. 이전 요청이 끝난 뒤에만 다음 요청을 보내서 요청이 겹치지 않게 합니다.
   useEffect(() => {
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
+    let inFlight = false;
+    let again = false;
+
     const poll = async () => {
+      if (inFlight) {
+        again = true;
+        return;
+      }
+      inFlight = true;
+      clearTimeout(timer);
       const started = version.current;
       try {
         if (!document.hidden) {
@@ -34,13 +58,32 @@ export function LiveView({ matchId, isAdmin, initial }: Props) {
         }
       } catch {
         // 네트워크가 잠깐 끊겨도 다음 주기에 다시 시도합니다.
+      } finally {
+        inFlight = false;
       }
-      if (!stopped) timer = setTimeout(poll, POLL_MS);
+      if (stopped) return;
+      if (again) {
+        again = false;
+        void poll();
+      } else {
+        timer = setTimeout(poll, pollMs.current);
+      }
     };
-    timer = setTimeout(poll, POLL_MS);
+    timer = setTimeout(poll, pollMs.current);
+
+    // 화면을 다시 켜면 바로 현재 표로 맞춥니다.
+    const onVisible = () => {
+      if (!document.hidden) void poll();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    pollNow.current = () => void poll();
+
     return () => {
       stopped = true;
       clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      pollNow.current = () => {};
     };
   }, [matchId]);
 
